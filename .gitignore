@@ -1,0 +1,5 @@
+*
+!.gitignore
+!*.cpp
+!Makefile
+!processes-3
