@@ -10,6 +10,27 @@ using std::string;
 using std::vector;
 
 
+class Process {
+
+    private:
+    int process_id;
+    int burst_time;
+    int arrival_time;
+
+    public:
+
+    Process(int process_id, int burst_time, int arrival_time) {
+        this->process_id = process_id;
+        this->burst_time = burst_time;
+        this->arrival_time = arrival_time;
+    }
+
+};
+
+
+struct pro
+
+
 void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> arrival_time, int numProcesses);
 
 
@@ -88,6 +109,8 @@ int main(int argc, char** argv) {
 
 void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> arrival_time, int numProcesses) {
 
+    std::ofstream outfile;
+
     vector<int> waiting_time;
     vector<int> running_time;
     vector<int> turnaround_time;
@@ -110,8 +133,8 @@ void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> 
             waiting_time[i] = 0;
         }
 
-
-        cout << "Waiting time for process " << process_id[i] << ": " << waiting_time[i] << endl;
+        // Delete after - printing for checking
+        // cout << "Waiting time for process " << process_id[i] << ": " << waiting_time[i] << endl;
 
     }
 
@@ -119,10 +142,33 @@ void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> 
     for(int i = 0; i < numProcesses; ++i) {
         turnaround_time.push_back(burst_time[i] + waiting_time[i]);
 
-        cout << "Turnaround time for process " << process_id[i] << ": " << turnaround_time[i] << endl;
+        // Delete after - printing for checking
+        // cout << "Turnaround time for process " << process_id[i] << ": " << turnaround_time[i] << endl;
 
     }
 
+    // Output CSV file with waiting time and turnaround time
+    outfile.open("FCFS-output.csv");
 
+    outfile << "Process_id," << "Waiting_time," << "Turnaround_time" << endl;
+
+    for (int i = 0; i < numProcesses; ++i) {
+        outfile << process_id[i] << "," << waiting_time[i] << "," << turnaround_time[i] << endl;
+    }
+
+    outfile.close();
+
+}
+
+void sjfSimulation(vector<int> process_id, vector<int> burst_time, vector<int> arrival_time, int numProcesses) {
+
+    vector<Process*> processes;
+
+    for (int i = 0; i < numProcesses; ++i) {
+        Process* p = new Process(process_id[i], burst_time[i], arrival_time[i]);
+        processes.push_back(p);
+
+
+    }
 
 }
