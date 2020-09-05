@@ -90,7 +90,7 @@ void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> 
 
     vector<int> waiting_time;
     vector<int> running_time;
-
+    vector<int> turnaround_time;
     
     running_time.push_back(0);
     // Waiting time of first process is 0
@@ -110,8 +110,16 @@ void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> 
             waiting_time[i] = 0;
         }
 
+
         cout << "Waiting time for process " << process_id[i] << ": " << waiting_time[i] << endl;
 
+    }
+
+    // Calculate the turnaround time
+    for(int i = 0; i < numProcesses; ++i) {
+        turnaround_time.push_back(burst_time[i] + waiting_time[i]);
+
+        cout << "Turnaround time for process " << process_id[i] << ": " << turnaround_time[i] << endl;
 
     }
 
