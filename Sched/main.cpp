@@ -18,7 +18,6 @@ struct Process {
     int arrival_time;
     int waiting_time;
     int turnaround_time;
-    bool running;
 
 };
 
@@ -57,7 +56,8 @@ int main(int argc, char** argv) {
             p.process_id = a;
             p.burst_time = b;
             p.arrival_time = c;
-            p.running = false;
+            p.waiting_time = 0;
+            p.turnaround_time = 0;
 
             processes.push_back(p);
 
@@ -131,10 +131,15 @@ void fcfsSimulation(vector<Process> processes) {
     // Output CSV file with waiting time and turnaround time
     outfile.open("FCFS-output.csv");
 
-    outfile << "Process_id," << "Waiting_time," << "Turnaround_time" << endl;
+    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
 
     for (unsigned int i = 0; i < processes.size(); ++i) {
-        outfile << processes[i].process_id << "," << processes[i].waiting_time << "," << processes[i].turnaround_time << endl;
+        outfile << processes[i].process_id << "," 
+                << processes[i].burst_time << "," 
+                << processes[i].arrival_time << "," 
+                << processes[i].waiting_time << "," 
+                << processes[i].turnaround_time 
+                << endl;
     }
 
     outfile.close();
@@ -144,79 +149,88 @@ void fcfsSimulation(vector<Process> processes) {
 
 void sjfSimulation(vector<Process> processes) {
 
+    std::ofstream outfile;
+
     vector<Process> runningProcess;
     vector<Process> queueProcess;
-    int totalBurstTime = 0;
-    int totalRunningTime = 0;
     int currentRunningTime = 0;
-    // int processCounter = 0;
+    int timer = 0;
 
     // First process to be run added to running queue
     runningProcess.push_back(processes[0]);
     runningProcess[0].waiting_time = 0;
-    // runningProcess[0].running = true;
     currentRunningTime += runningProcess[0].burst_time;
-    
+    processes.erase(processes.begin());
 
-    for (unsigned int i = 0; i < processes.size(); ++i) {
-        totalBurstTime += processes[i].burst_time;
-    }
-
-    // Timer for loop
-    for (int timer = 0; timer < totalBurstTime; ++timer) {
-
+    // Timer loop
+    while (!processes.empty() || !queueProcess.empty()) {
+        // Tracks when process is finished
+        // Moves process from queueProcess to runningProcess
         if (timer == currentRunningTime) {
-            // ++processCounter;
-            // runningProcess[processCounter].running = true;
-            // currentRunningTime += runningProcess[processCounter].burst_time;
-
             runningProcess.push_back(queueProcess[0]);
             queueProcess.erase(queueProcess.begin());
+            // Calculate the waiting time
+            runningProcess.back().waiting_time = currentRunningTime - runningProcess.back().arrival_time;
             currentRunningTime += runningProcess.back().burst_time;
 
         }
 
-        // if(currentRunningTime == runningProcess[processCounter].burst_time) {
-        //     currentRunningTime = 0;
-        //     ++processCounter;
-        //     runningProcess[processCounter].running = true;
-        // }
-
-
-        for (unsigned int i = 1; i < processes.size(); ++i) {
-            // Add process to running process according to arrival time
-            if (timer == processes[i].arrival_time) {
-                queueProcess.push_back(processes[i]);
-
-                // for (unsigned int j = 0; j < runningProcess.size(); ++j) {
-                //     cout  << "Process id: " << runningProcess[j].process_id << " | Burst time: " << runningProcess[j].burst_time << " | Arrival time: " << runningProcess[j].arrival_time << endl;
-                // }
-
-                // cout << endl;
-            }
+        // Check for process arrival time - assumes arrival times are listed in order in the file
+        if (timer == processes[0].arrival_time) {
+            queueProcess.push_back(processes[0]);
+            processes.erase(processes.begin());
         }
 
-        // std::sort(runningProcess.begin(), runningProcess.end(), [](Process a, Process b) -> bool {
-        //     if (a.running == false && b.running == false) {
-        //         return a.burst_time < b.burst_time;
-        //     } else {
-        //         return false;
-        //     }
-        // });
-
+        // Lambda for sorting
         std::sort(queueProcess.begin(), queueProcess.end(), [](Process a, Process b) {
             return a.burst_time < b.burst_time;
         });
 
-
-        ++totalRunningTime;
+        // Increment timer tick
+        ++timer;
 
     }
 
+
+    // Calculate turnaround time
+    for(unsigned int i = 0; i < runningProcess.size(); ++i) {
+        runningProcess[i].turnaround_time = runningProcess[i].burst_time + runningProcess[i].waiting_time;
+
+        // Delete after - printing for checking
+        // cout << "Turnaround time for process using Struct " << processes[i].process_id << ": " << processes[i].turnaround_time << endl;
+    }
+
+
+    // Output CSV file with waiting time and turnaround time
+    outfile.open("SJF-output.csv");
+
+    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
+
+    for (unsigned int i = 0; i < runningProcess.size(); ++i) {
+        outfile << runningProcess[i].process_id << "," 
+                << runningProcess[i].burst_time << "," 
+                << runningProcess[i].arrival_time << "," 
+                << runningProcess[i].waiting_time << "," 
+                << runningProcess[i].turnaround_time 
+                << endl;
+    }
+
+    outfile.close();
+
+    // Testing Stuff - delete after
+    int count = 0;
+
     for (unsigned int j = 0; j < runningProcess.size(); ++j) {
-        cout  << "Process id: " << runningProcess[j].process_id << " | Burst time: " << runningProcess[j].burst_time << " | Arrival time: " << runningProcess[j].arrival_time << endl;
+        ++count;
+        cout  << "Process id: " << runningProcess[j].process_id 
+              << "\t| Burst: " << runningProcess[j].burst_time 
+              << "\t| Arrival: " << runningProcess[j].arrival_time 
+              << "\t| Waiting: " << runningProcess[j].waiting_time 
+              << "\t| Turnaround: " << runningProcess[j].turnaround_time 
+              << endl;
     }
 
         cout << endl;
+        cout << count << endl;
 
 }
