@@ -69,22 +69,25 @@ int main(int argc, char** argv) {
 
     // Check for which process scheduler
     if (argv[1] == string("-fcfs")) {
-        cout << "Running FCFS" << endl;
+        cout << "Running First Come First Served Scheduler simulation" << endl;
         fcfsSimulation(processes);
 
     } else if (argv[1] == string("-sjf")) {
-        cout << "Running SJF" << endl;
+        cout << "Running Shortest Job First Scheduler simulation" << endl;
         sjfSimulation(processes);
 
     } else if (argv[1] == string("-rr")) {
-        cout << "RR" << endl;
+        cout << "Running Round Robin Scheduler simulation" << endl;
+
     } else {
         cout << "Incorrect scheduling input" << endl;
         return EXIT_FAILURE;
+
     }
 
     return EXIT_SUCCESS;
 }
+
 
 void fcfsSimulation(vector<Process> processes) {
 
@@ -116,16 +119,11 @@ void fcfsSimulation(vector<Process> processes) {
             processes[i].waiting_time = 0;
         }
 
-        // Delete after - printing for checking
-        // cout << "Waiting time for process using Struct " << processes[i].process_id << ": " << processes[i].waiting_time << endl;
     }
 
     // Calculating turnaround time
     for(unsigned int i = 0; i < processes.size(); ++i) {
         processes[i].turnaround_time = processes[i].burst_time + processes[i].waiting_time;
-
-        // Delete after - printing for checking
-        // cout << "Turnaround time for process using Struct " << processes[i].process_id << ": " << processes[i].turnaround_time << endl;
     }
 
     // Output CSV file with waiting time and turnaround time
@@ -145,7 +143,6 @@ void fcfsSimulation(vector<Process> processes) {
     outfile.close();
 
 }
-
 
 void sjfSimulation(vector<Process> processes) {
 
@@ -195,9 +192,6 @@ void sjfSimulation(vector<Process> processes) {
     // Calculate turnaround time
     for(unsigned int i = 0; i < runningProcess.size(); ++i) {
         runningProcess[i].turnaround_time = runningProcess[i].burst_time + runningProcess[i].waiting_time;
-
-        // Delete after - printing for checking
-        // cout << "Turnaround time for process using Struct " << processes[i].process_id << ": " << processes[i].turnaround_time << endl;
     }
 
 
@@ -216,21 +210,5 @@ void sjfSimulation(vector<Process> processes) {
     }
 
     outfile.close();
-
-    // Testing Stuff - delete after
-    int count = 0;
-
-    for (unsigned int j = 0; j < runningProcess.size(); ++j) {
-        ++count;
-        cout  << "Process id: " << runningProcess[j].process_id 
-              << "\t| Burst: " << runningProcess[j].burst_time 
-              << "\t| Arrival: " << runningProcess[j].arrival_time 
-              << "\t| Waiting: " << runningProcess[j].waiting_time 
-              << "\t| Turnaround: " << runningProcess[j].turnaround_time 
-              << endl;
-    }
-
-        cout << endl;
-        cout << count << endl;
 
 }
