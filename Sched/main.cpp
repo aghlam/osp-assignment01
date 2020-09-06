@@ -10,38 +10,27 @@ using std::string;
 using std::vector;
 
 
-class Process {
+struct Process {
 
-    private:
     int process_id;
     int burst_time;
     int arrival_time;
-
-    public:
-
-    Process(int process_id, int burst_time, int arrival_time) {
-        this->process_id = process_id;
-        this->burst_time = burst_time;
-        this->arrival_time = arrival_time;
-    }
+    int waiting_time;
+    int turnaround_time;
+    bool running;
 
 };
 
 
-struct pro
-
-
-void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> arrival_time, int numProcesses);
+void fcfsSimulation(vector<Process> processes);
+void sjfSimulation(vector<Process> processes);
 
 
 int main(int argc, char** argv) {
 
     std::ifstream infile;
 
-    vector<int> process_id;
-    vector<int> burst_time;
-    vector<int> arrival_time;
-    int numProcesses = 0;
+    vector<Process> processes;
 
     // Check for correct number of arguments
     if (argc != 3) {
@@ -55,47 +44,37 @@ int main(int argc, char** argv) {
     if (infile.fail()) {
         cout << "Error - could not open file" << endl;
         return EXIT_FAILURE;
+
     } else {
         while (!infile.eof()) {
 
             int a, b, c;
 
             infile >> a >> b >> c;
-            process_id.push_back(a);
-            burst_time.push_back(b);
-            arrival_time.push_back(c);
+
+            Process p;
+            p.process_id = a;
+            p.burst_time = b;
+            p.arrival_time = c;
+            p.running = false;
+
+            processes.push_back(p);
 
         }
     }
 
     infile.close();
 
-    // cout << process_id.size() << endl;
-    numProcesses = process_id.size();
-
 
     // Check for which process scheduler
     if (argv[1] == string("-fcfs")) {
-        cout << "FCFS" << endl;
-        fcfsSimulation(process_id, burst_time, arrival_time, numProcesses);
-
-        // for (int i = 0; i < process_id.size(); ++i) {
-        //     cout << process_id[i] << " " << burst_time[i] << " " << arrival_time[i] << endl;
-        // }
-
-        // for (int i : process_id) {
-        //     cout << process_id[i-1] << " " << burst_time[i-1] << " " << arrival_time[i-1] <<endl;;
-        // }
-
-        // int totalProcessTime = 0;
-        // for (int i : burst_time) {
-        //     totalProcessTime += burst_time[i];
-        // }
-
-        // cout << "Total process time: " << totalProcessTime << endl;
+        cout << "Running FCFS" << endl;
+        fcfsSimulation(processes);
 
     } else if (argv[1] == string("-sjf")) {
-        cout << "SJF" << endl;
+        cout << "Running SJF" << endl;
+        sjfSimulation(processes);
+
     } else if (argv[1] == string("-rr")) {
         cout << "RR" << endl;
     } else {
@@ -106,45 +85,46 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
 }
 
-
-void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> arrival_time, int numProcesses) {
+void fcfsSimulation(vector<Process> processes) {
 
     std::ofstream outfile;
 
-    vector<int> waiting_time;
     vector<int> running_time;
-    vector<int> turnaround_time;
     
+    // Initial running time when starting first process is 0
     running_time.push_back(0);
     // Waiting time of first process is 0
-    waiting_time.push_back(0);
+    processes[0].waiting_time = 0;
 
 
-    // Calculate the waiting time
-    for(int i = 1; i < numProcesses; ++i) {
+    // Calculating waiting time
+    for(unsigned int i = 1; i < processes.size(); ++i) {
 
-        // Calculate the running time by adding burst time of previous process
-        running_time.push_back(running_time[i-1] + burst_time[i-1]);
+        // Calculate the current running time by adding burst time of previous process
+        running_time.push_back(running_time[i-1] + processes[i-1].burst_time);
 
         // Calculate waiting time for current process
-        waiting_time.push_back(running_time[i] - arrival_time[i]);
+        processes[i].waiting_time = running_time[i] - processes[i].arrival_time;
 
-        if (waiting_time[i] < 0) {
-            waiting_time[i] = 0;
+        /**
+         * If the waiting time for a process is in the negative that means it is already 
+         * in the ready queue before CPU becomes idle so its waiting time is 0
+         * Source: https://www.geeksforgeeks.org/program-for-fcfs-cpu-scheduling-set-1/
+         */
+        if (processes[i].waiting_time < 0) {
+            processes[i].waiting_time = 0;
         }
 
         // Delete after - printing for checking
-        // cout << "Waiting time for process " << process_id[i] << ": " << waiting_time[i] << endl;
-
+        // cout << "Waiting time for process using Struct " << processes[i].process_id << ": " << processes[i].waiting_time << endl;
     }
 
-    // Calculate the turnaround time
-    for(int i = 0; i < numProcesses; ++i) {
-        turnaround_time.push_back(burst_time[i] + waiting_time[i]);
+    // Calculating turnaround time
+    for(unsigned int i = 0; i < processes.size(); ++i) {
+        processes[i].turnaround_time = processes[i].burst_time + processes[i].waiting_time;
 
         // Delete after - printing for checking
-        // cout << "Turnaround time for process " << process_id[i] << ": " << turnaround_time[i] << endl;
-
+        // cout << "Turnaround time for process using Struct " << processes[i].process_id << ": " << processes[i].turnaround_time << endl;
     }
 
     // Output CSV file with waiting time and turnaround time
@@ -152,23 +132,52 @@ void fcfsSimulation(vector<int> process_id, vector<int> burst_time, vector<int> 
 
     outfile << "Process_id," << "Waiting_time," << "Turnaround_time" << endl;
 
-    for (int i = 0; i < numProcesses; ++i) {
-        outfile << process_id[i] << "," << waiting_time[i] << "," << turnaround_time[i] << endl;
+    for (unsigned int i = 0; i < processes.size(); ++i) {
+        outfile << processes[i].process_id << "," << processes[i].waiting_time << "," << processes[i].turnaround_time << endl;
     }
 
     outfile.close();
 
 }
 
-void sjfSimulation(vector<int> process_id, vector<int> burst_time, vector<int> arrival_time, int numProcesses) {
 
-    vector<Process*> processes;
+void sjfSimulation(vector<Process> processes) {
 
-    for (int i = 0; i < numProcesses; ++i) {
-        Process* p = new Process(process_id[i], burst_time[i], arrival_time[i]);
-        processes.push_back(p);
+    // vector<Process> processes;
+    // vector<int> waiting_time;
+    // vector<int> turnaround_time;
+    // vector<int> running_time;
+
+    // int totalBurstTime = 0;
+
+    // for (int i = 0; i < processes.size(); ++i) {
+    //     // Process* p = new Process(process_id[i], burst_time[i], arrival_time[i]);
+    //     Process p;
+    //     p.arrival_time = arrival_time[i];
+    //     p.process_id = process_id[i];
+    //     p.burst_time = burst_time[i];
+    //     p.running = false;
+    //     processes.push_back(p);
+
+    //     totalBurstTime += burst_time[i];
+    //     cout << "Total burst time: " << totalBurstTime << endl;
+
+    // }
+
+    // Timer for loop
+    // for (int i = 0; i < totalBurstTime; ++i) {
+
+    //     for (int j = 0; j < numProcesses; ++j) {
+
+    //         if (i == processes[j].arrival_time) {
+
+    //         }
+
+    //     }
 
 
-    }
+    // }
+
+
 
 }
