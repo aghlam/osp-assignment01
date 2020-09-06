@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -143,41 +144,69 @@ void fcfsSimulation(vector<Process> processes) {
 
 void sjfSimulation(vector<Process> processes) {
 
-    // vector<Process> processes;
-    // vector<int> waiting_time;
-    // vector<int> turnaround_time;
-    // vector<int> running_time;
+    vector<Process> runningProcess;
+    int totalBurstTime = 0;
+    int totalRunningTime = 0;
+    int currentRunningTime = 0;
+    int processCounter = 0;
 
-    // int totalBurstTime = 0;
+    // First process to be run added to running queue
+    runningProcess.push_back(processes[0]);
+    runningProcess[0].waiting_time = 0;
+    runningProcess[0].running = true;
+    currentRunningTime += runningProcess[0].burst_time;
+    
 
-    // for (int i = 0; i < processes.size(); ++i) {
-    //     // Process* p = new Process(process_id[i], burst_time[i], arrival_time[i]);
-    //     Process p;
-    //     p.arrival_time = arrival_time[i];
-    //     p.process_id = process_id[i];
-    //     p.burst_time = burst_time[i];
-    //     p.running = false;
-    //     processes.push_back(p);
-
-    //     totalBurstTime += burst_time[i];
-    //     cout << "Total burst time: " << totalBurstTime << endl;
-
-    // }
+    for (unsigned int i = 0; i < processes.size(); ++i) {
+        totalBurstTime += processes[i].burst_time;
+    }
 
     // Timer for loop
-    // for (int i = 0; i < totalBurstTime; ++i) {
+    for (int timer = 0; timer < totalBurstTime; ++timer) {
 
-    //     for (int j = 0; j < numProcesses; ++j) {
+        if (timer == currentRunningTime) {
+            ++processCounter;
+            runningProcess[processCounter].running = true;
+            currentRunningTime += runningProcess[processCounter].burst_time;
+        }
 
-    //         if (i == processes[j].arrival_time) {
-
-    //         }
-
-    //     }
-
-
-    // }
+        // if(currentRunningTime == runningProcess[processCounter].burst_time) {
+        //     currentRunningTime = 0;
+        //     ++processCounter;
+        //     runningProcess[processCounter].running = true;
+        // }
 
 
+        for (unsigned int i = 1; i < processes.size(); ++i) {
+            // Add process to running process according to arrival time
+            if (timer == processes[i].arrival_time) {
+                runningProcess.push_back(processes[i]);
+
+                for (unsigned int j = 0; j < runningProcess.size(); ++j) {
+                    cout  << "Process id: " << runningProcess[j].process_id << " | Burst time: " << runningProcess[j].burst_time << " | Arrival time: " << runningProcess[j].arrival_time << endl;
+                }
+
+                cout << endl;
+            }
+        }
+
+        std::sort(runningProcess.begin(), runningProcess.end(), [](Process a, Process b) -> bool {
+            if (a.running == false && b.running == false) {
+                return a.burst_time < b.burst_time;
+            } else {
+                return false;
+            }
+        });
+
+
+        ++totalRunningTime;
+
+    }
+
+    for (unsigned int j = 0; j < runningProcess.size(); ++j) {
+        cout  << "Process id: " << runningProcess[j].process_id << " | Burst time: " << runningProcess[j].burst_time << " | Arrival time: " << runningProcess[j].arrival_time << endl;
+    }
+
+        cout << endl;
 
 }
