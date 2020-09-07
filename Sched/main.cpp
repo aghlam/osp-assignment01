@@ -14,16 +14,17 @@ using std::vector;
 struct Process {
 
     int process_id;
-    int burst_time;
-    int arrival_time;
-    int waiting_time;
-    int turnaround_time;
+    double burst_time;
+    double arrival_time;
+    double waiting_time;
+    double turnaround_time;
 
 };
 
 
 void fcfsSimulation(vector<Process> processes);
 void sjfSimulation(vector<Process> processes);
+void rrSimulation(vector<Process> processes);
 
 
 int main(int argc, char** argv) {
@@ -78,6 +79,7 @@ int main(int argc, char** argv) {
 
     } else if (argv[1] == string("-rr")) {
         cout << "Running Round Robin Scheduler simulation" << endl;
+        rrSimulation(processes);
 
     } else {
         cout << "Incorrect scheduling input" << endl;
@@ -88,6 +90,104 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
 }
 
+void rrSimulation(vector<Process> processes) {
+
+    std::ofstream outfile;
+
+    double timer = 0;
+    // Set quantum and context switch
+    double quantum = 2;
+    double context_switch = 0.1;
+
+    // Vector to hold processes in rr queue
+    vector<Process> processesCopy;
+    vector<double> runningQueue;
+
+    // Create copy of burst times minus the initial process
+    for (unsigned int i = 1; i < processes.size(); ++i) {
+        processesCopy.push_back(processes[i]);
+    }
+
+    // Add initial process to runningQueue
+    runningQueue.push_back(processes[0].burst_time);
+
+
+    while(true) {
+        // For when there are no more processes to be run
+        bool running = false;
+
+        ++timer;
+
+        if ((int)timer % (int)quantum == 0) {
+
+            // Loop through processes
+            for (unsigned int i = 0; i < runningQueue.size(); ++i) {
+
+                if (runningQueue[i] > 0) {
+
+                    running = true;
+
+                    if (runningQueue[i] > quantum) {
+                        // timer += quantum;
+
+                        runningQueue[i] -= (quantum - context_switch);
+
+                    } else {
+                        // Even when process is finished cpu is idle until end of quantum 
+                        // so timer adds ticks equal to quantum
+                        // timer += quantum;
+
+                        runningQueue[i] = 0;
+
+                        // Calculate waiting time for the process
+                        processes[i].waiting_time = timer - processes[i].burst_time;
+                    }
+
+                }
+            }
+        }
+
+        // Check for new processes arriving in queue
+        for (unsigned int i = 0; i < processesCopy.size(); ++i) {
+            if (timer >= processesCopy[i].arrival_time) {
+                runningQueue.push_back(processesCopy[i].burst_time);
+                processesCopy.erase(processesCopy.begin());
+            }
+        }
+
+
+
+    }
+
+    // Calculate turnaround time
+    for (unsigned int i = 0; i < processes.size(); ++i) {
+        processes[i].turnaround_time = processes[i].burst_time + processes[i].waiting_time;
+    }
+
+
+    // For testing - delete after
+    for (unsigned int i = 0; i < processes.size(); ++i) {
+        cout << "ID: " << processes[i].process_id << "\t| Waiting: " << processes[i].waiting_time << "\t|Turnaround: " << processes[i].turnaround_time<< endl;
+    }
+
+
+    // Output CSV file with waiting time and turnaround time
+    outfile.open("RR-output.csv");
+
+    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
+
+    for (unsigned int i = 0; i < processes.size(); ++i) {
+        outfile << processes[i].process_id << "," 
+                << processes[i].burst_time << "," 
+                << processes[i].arrival_time << "," 
+                << processes[i].waiting_time << "," 
+                << processes[i].turnaround_time 
+                << endl;
+    }
+
+    outfile.close();
+
+}
 
 void fcfsSimulation(vector<Process> processes) {
 
