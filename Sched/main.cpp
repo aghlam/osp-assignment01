@@ -179,7 +179,7 @@ void sjfSimulation(vector<Process> processes) {
         }
 
         // Lambda for sorting
-        std::sort(queueProcess.begin(), queueProcess.end(), [](Process a, Process b) {
+        std::stable_sort(queueProcess.begin(), queueProcess.end(), [](Process a, Process b) {
             return a.burst_time < b.burst_time;
         });
 
