@@ -3,12 +3,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <list>
 
 
 using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
+using std::list;
 
 
 struct Process {
@@ -94,6 +96,7 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
 }
 
+
 void rrSimulation(vector<Process> processes) {
 
     std::ofstream outfile;
@@ -103,110 +106,89 @@ void rrSimulation(vector<Process> processes) {
     int quantum = 2;
     double context_switch = 0.1;
 
-    // Index counter
-    int processIndex = 0;
+    list<Process> readyQ;
 
-    // Vector to hold processes in rr queue
-    vector<Process> readyQueue;
-    // vector<Process> finishedProcesses;
-
-    
     bool running = true;
 
-    while(running) {
+    // RR loop
+    while (running) {
 
-        running = false;
-
-        // Check for new processes arriving in readyQueue - according to arrival_time
-        if (!processes.empty()) {
-            if (processes[0].arrival_time == timer) {
-                readyQueue.push_back(processes[0]);
-                processes.erase(processes.begin());
-            }
+        if (processes.empty()) {
+            running = false;
         }
 
-        // Check if more processes to be run
-        for (unsigned int i = 0; i < readyQueue.size(); ++i) {
-            if (readyQueue[i].burst_time != 0) {
+        for (Process process : readyQ) {
+            if (process.burst_time != 0) {
                 running = true;
                 break;
             }
         }
 
-
         if ((timer != 0) && (timer % quantum == 0)) {
 
-
-
-            while (readyQueue[processIndex].burst_time == 0) {
-                ++processIndex;
-
-                if ((unsigned)processIndex >= readyQueue.size()) {
-                    processIndex = 0;
-                }
+            while (readyQ.front().burst_time == 0) {
+                readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
             }
 
-            if (readyQueue[processIndex].burst_time > 0) {
+            if (readyQ.front().burst_time > quantum) {
+                // Minus from burst time
+                readyQ.front().burst_time -= ((double)quantum - context_switch);
+                // Move process to end of the list
+                readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
 
-                if (readyQueue[processIndex].burst_time > quantum) {
-                    readyQueue[processIndex].burst_time -= (quantum - context_switch);
-
-
-                } else {
-                    
-                    // Finish running current process
-                    readyQueue[processIndex].burst_time = 0;
-
-                    // Calculate turnaround time
-                    readyQueue[processIndex].turnaround_time = (timer + quantum) - readyQueue[processIndex].arrival_time;
-                    // Calculate waiting time
-                    readyQueue[processIndex].waiting_time = readyQueue[processIndex].turnaround_time - readyQueue[processIndex].original_bt;
-
-                    // finishedProcesses.push_back(readyQueue[processIndex]);
-                    // Remove finished index from runningQueue
-                    // readyQueue.erase(readyQueue.begin() + processIndex);
-                }
+            } else {
+                // Finish process
+                readyQ.front().burst_time = 0;
+                // Calculate turnaround time
+                readyQ.front().turnaround_time = (double)timer - readyQ.front().arrival_time;
+                // Calculate waiting time
+                readyQ.front().waiting_time = readyQ.front().turnaround_time - readyQ.front().original_bt;
+                // Move process to end of the list
+                readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
 
             }
 
-            ++processIndex;
+        }
 
-            if ((unsigned)processIndex >= readyQueue.size()) {
-                processIndex = 0;
+        // Add in any new process
+        if (!processes.empty()) {
+            if (processes[0].arrival_time == timer) {
+                readyQ.push_back(processes[0]);
+                processes.erase(processes.begin());
             }
         }
 
+        // Increment timer
         ++timer;
 
     }
 
-    // Calculate turnaround time
-    // for (unsigned int i = 0; i < processes.size(); ++i) {
-    //     processes[i].turnaround_time = processes[i].burst_time + processes[i].waiting_time;
-    // }
-
+    // Sort the final list
+    readyQ.sort([](Process a, Process b) {
+        return a.process_id < b.process_id;
+    });
 
     // For testing - delete after
-    for (unsigned int i = 0; i < readyQueue.size(); ++i) {
-        cout << "ID: " << readyQueue[i].process_id << "\t| Waiting: " << readyQueue[i].waiting_time << "\t|Turnaround: " << readyQueue[i].turnaround_time<< endl;
+    for (Process process : readyQ) {
+        cout << "ID: " << process.process_id << "\t| Waiting: " << process.waiting_time << "\t|Turnaround: " << process.turnaround_time<< endl;
     }
 
 
     // Output CSV file with waiting time and turnaround time
-    // outfile.open("RR-output.csv");
+    outfile.open("RR-output.csv");
 
-    // outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
+    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
 
-    // for (unsigned int i = 0; i < processes.size(); ++i) {
-    //     outfile << processes[i].process_id << "," 
-    //             << processes[i].burst_time << "," 
-    //             << processes[i].arrival_time << "," 
-    //             << processes[i].waiting_time << "," 
-    //             << processes[i].turnaround_time 
-    //             << endl;
-    // }
+    for (Process process : readyQ) {
+        outfile << process.process_id << "," 
+                << process.original_bt << "," 
+                << process.arrival_time << "," 
+                << process.waiting_time << "," 
+                << process.turnaround_time 
+                << endl;
+    }
 
-    // outfile.close();
+    outfile.close();
 
 }
 
