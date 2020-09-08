@@ -19,6 +19,9 @@ struct Process {
     double waiting_time;
     double turnaround_time;
 
+    // For RR use
+    double original_bt;
+
 };
 
 
@@ -59,6 +62,7 @@ int main(int argc, char** argv) {
             p.arrival_time = c;
             p.waiting_time = 0;
             p.turnaround_time = 0;
+            p.original_bt = b;
 
             processes.push_back(p);
 
@@ -94,98 +98,115 @@ void rrSimulation(vector<Process> processes) {
 
     std::ofstream outfile;
 
-    double timer = 0;
+    int timer = 0;
     // Set quantum and context switch
-    double quantum = 2;
+    int quantum = 2;
     double context_switch = 0.1;
 
+    // Index counter
+    int processIndex = 0;
+
     // Vector to hold processes in rr queue
-    vector<Process> processesCopy;
-    vector<double> runningQueue;
+    vector<Process> readyQueue;
+    // vector<Process> finishedProcesses;
 
-    // Create copy of burst times minus the initial process
-    for (unsigned int i = 1; i < processes.size(); ++i) {
-        processesCopy.push_back(processes[i]);
-    }
+    
+    bool running = true;
 
-    // Add initial process to runningQueue
-    runningQueue.push_back(processes[0].burst_time);
+    while(running) {
+
+        running = false;
+
+        // Check for new processes arriving in readyQueue - according to arrival_time
+        if (!processes.empty()) {
+            if (processes[0].arrival_time == timer) {
+                readyQueue.push_back(processes[0]);
+                processes.erase(processes.begin());
+            }
+        }
+
+        // Check if more processes to be run
+        for (unsigned int i = 0; i < readyQueue.size(); ++i) {
+            if (readyQueue[i].burst_time != 0) {
+                running = true;
+                break;
+            }
+        }
 
 
-    while(true) {
-        // For when there are no more processes to be run
-        bool running = false;
+        if ((timer != 0) && (timer % quantum == 0)) {
 
-        ++timer;
 
-        if ((int)timer % (int)quantum == 0) {
 
-            // Loop through processes
-            for (unsigned int i = 0; i < runningQueue.size(); ++i) {
+            while (readyQueue[processIndex].burst_time == 0) {
+                ++processIndex;
 
-                if (runningQueue[i] > 0) {
-
-                    running = true;
-
-                    if (runningQueue[i] > quantum) {
-                        // timer += quantum;
-
-                        runningQueue[i] -= (quantum - context_switch);
-
-                    } else {
-                        // Even when process is finished cpu is idle until end of quantum 
-                        // so timer adds ticks equal to quantum
-                        // timer += quantum;
-
-                        runningQueue[i] = 0;
-
-                        // Calculate waiting time for the process
-                        processes[i].waiting_time = timer - processes[i].burst_time;
-                    }
-
+                if ((unsigned)processIndex >= readyQueue.size()) {
+                    processIndex = 0;
                 }
             }
-        }
 
-        // Check for new processes arriving in queue
-        for (unsigned int i = 0; i < processesCopy.size(); ++i) {
-            if (timer >= processesCopy[i].arrival_time) {
-                runningQueue.push_back(processesCopy[i].burst_time);
-                processesCopy.erase(processesCopy.begin());
+            if (readyQueue[processIndex].burst_time > 0) {
+
+                if (readyQueue[processIndex].burst_time > quantum) {
+                    readyQueue[processIndex].burst_time -= (quantum - context_switch);
+
+
+                } else {
+                    
+                    // Finish running current process
+                    readyQueue[processIndex].burst_time = 0;
+
+                    // Calculate turnaround time
+                    readyQueue[processIndex].turnaround_time = (timer + quantum) - readyQueue[processIndex].arrival_time;
+                    // Calculate waiting time
+                    readyQueue[processIndex].waiting_time = readyQueue[processIndex].turnaround_time - readyQueue[processIndex].original_bt;
+
+                    // finishedProcesses.push_back(readyQueue[processIndex]);
+                    // Remove finished index from runningQueue
+                    // readyQueue.erase(readyQueue.begin() + processIndex);
+                }
+
+            }
+
+            ++processIndex;
+
+            if ((unsigned)processIndex >= readyQueue.size()) {
+                processIndex = 0;
             }
         }
 
-
+        ++timer;
 
     }
 
     // Calculate turnaround time
-    for (unsigned int i = 0; i < processes.size(); ++i) {
-        processes[i].turnaround_time = processes[i].burst_time + processes[i].waiting_time;
-    }
+    // for (unsigned int i = 0; i < processes.size(); ++i) {
+    //     processes[i].turnaround_time = processes[i].burst_time + processes[i].waiting_time;
+    // }
 
 
     // For testing - delete after
-    for (unsigned int i = 0; i < processes.size(); ++i) {
-        cout << "ID: " << processes[i].process_id << "\t| Waiting: " << processes[i].waiting_time << "\t|Turnaround: " << processes[i].turnaround_time<< endl;
+    for (unsigned int i = 0; i < readyQueue.size(); ++i) {
+        cout << "ID: " << readyQueue[i].process_id << "\t| Waiting: " << readyQueue[i].waiting_time << "\t|Turnaround: " << readyQueue[i].turnaround_time<< endl;
     }
 
 
     // Output CSV file with waiting time and turnaround time
-    outfile.open("RR-output.csv");
+    // outfile.open("RR-output.csv");
 
-    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
+    // outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
 
-    for (unsigned int i = 0; i < processes.size(); ++i) {
-        outfile << processes[i].process_id << "," 
-                << processes[i].burst_time << "," 
-                << processes[i].arrival_time << "," 
-                << processes[i].waiting_time << "," 
-                << processes[i].turnaround_time 
-                << endl;
-    }
+    // for (unsigned int i = 0; i < processes.size(); ++i) {
+    //     outfile << processes[i].process_id << "," 
+    //             << processes[i].burst_time << "," 
+    //             << processes[i].arrival_time << "," 
+    //             << processes[i].waiting_time << "," 
+    //             << processes[i].turnaround_time 
+    //             << endl;
+    // }
 
-    outfile.close();
+    // outfile.close();
 
 }
 
@@ -253,14 +274,15 @@ void sjfSimulation(vector<Process> processes) {
     int currentRunningTime = 0;
     int timer = 0;
 
-    // First process to be run added to running queue
-    runningProcess.push_back(processes[0]);
-    runningProcess[0].waiting_time = 0;
-    currentRunningTime += runningProcess[0].burst_time;
-    processes.erase(processes.begin());
-
     // Timer loop
     while (!processes.empty() || !queueProcess.empty()) {
+
+        // Check for process arrival time - assumes arrival times are listed in order in the file
+        if (timer == processes[0].arrival_time) {
+            queueProcess.push_back(processes[0]);
+            processes.erase(processes.begin());
+        }
+
         // Tracks when process is finished
         // Moves process from queueProcess to runningProcess
         if (timer == currentRunningTime) {
@@ -272,11 +294,6 @@ void sjfSimulation(vector<Process> processes) {
 
         }
 
-        // Check for process arrival time - assumes arrival times are listed in order in the file
-        if (timer == processes[0].arrival_time) {
-            queueProcess.push_back(processes[0]);
-            processes.erase(processes.begin());
-        }
 
         // Lambda for sorting
         std::stable_sort(queueProcess.begin(), queueProcess.end(), [](Process a, Process b) {
