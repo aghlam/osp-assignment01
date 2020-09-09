@@ -2,14 +2,12 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
 #include <list>
 
 
 using std::cout;
 using std::endl;
 using std::string;
-using std::vector;
 using std::list;
 
 
@@ -20,23 +18,22 @@ struct Process {
     double arrival_time;
     double waiting_time;
     double turnaround_time;
-
-    // For RR use
     double original_bt;
 
 };
 
 
-void fcfsSimulation(vector<Process> processes);
-void sjfSimulation(vector<Process> processes);
-void rrSimulation(vector<Process> processes);
+void fcfsSimulation(list<Process> processes);
+void sjfSimulation(list<Process> processes);
+void rrSimulation(list<Process> processes);
+void outputCSV(list<Process> processes, string filename);
 
 
 int main(int argc, char** argv) {
 
     std::ifstream infile;
 
-    vector<Process> processes;
+    list<Process> processes;
 
     // Check for correct number of arguments
     if (argc != 3) {
@@ -73,22 +70,24 @@ int main(int argc, char** argv) {
 
     infile.close();
 
-
     // Check for which process scheduler
     if (argv[1] == string("-fcfs")) {
         cout << "Running First Come First Served Scheduler simulation" << endl;
+        cout << "Outputting data to FCFS-output.csv" << endl;
         fcfsSimulation(processes);
 
     } else if (argv[1] == string("-sjf")) {
         cout << "Running Shortest Job First Scheduler simulation" << endl;
+        cout << "Outputting data to SJF-output.csv" << endl;
         sjfSimulation(processes);
 
     } else if (argv[1] == string("-rr")) {
         cout << "Running Round Robin Scheduler simulation" << endl;
+        cout << "Outputting data to RR-output.csv" << endl;
         rrSimulation(processes);
 
     } else {
-        cout << "Incorrect scheduling input" << endl;
+        cout << "Error - incorrect scheduling input - please try again" << endl;
         return EXIT_FAILURE;
 
     }
@@ -97,16 +96,14 @@ int main(int argc, char** argv) {
 }
 
 
-void rrSimulation(vector<Process> processes) {
+void rrSimulation(list<Process> processes) {
 
-    std::ofstream outfile;
+    list<Process> readyQ;
 
     int timer = 0;
     // Set quantum and context switch
     int quantum = 2;
     double context_switch = 0.1;
-
-    list<Process> readyQ;
 
     bool running = true;
 
@@ -124,36 +121,37 @@ void rrSimulation(vector<Process> processes) {
             }
         }
 
-        if ((timer != 0) && (timer % quantum == 0)) {
+        if (!readyQ.empty()) {
+            if ((timer != 0) && (timer % quantum == 0)) {
+                // Skip over any process that has finished execution
+                while (readyQ.front().burst_time == 0) {
+                    readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
+                }
 
-            while (readyQ.front().burst_time == 0) {
-                readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
+                if (readyQ.front().burst_time >= quantum) {
+                    // Minus from burst time
+                    readyQ.front().burst_time -= ((double)quantum - context_switch);
+                    // Move process to end of the list
+                    readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
+
+                } else {
+                    // Finish process
+                    readyQ.front().burst_time = 0;
+                    // Calculate turnaround time
+                    readyQ.front().turnaround_time = (double)timer - readyQ.front().arrival_time;
+                    // Calculate waiting time
+                    readyQ.front().waiting_time = readyQ.front().turnaround_time - readyQ.front().original_bt;
+                    // Move process to end of the list
+                    readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
+
+                }
             }
-
-            if (readyQ.front().burst_time > quantum) {
-                // Minus from burst time
-                readyQ.front().burst_time -= ((double)quantum - context_switch);
-                // Move process to end of the list
-                readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
-
-            } else {
-                // Finish process
-                readyQ.front().burst_time = 0;
-                // Calculate turnaround time
-                readyQ.front().turnaround_time = (double)timer - readyQ.front().arrival_time;
-                // Calculate waiting time
-                readyQ.front().waiting_time = readyQ.front().turnaround_time - readyQ.front().original_bt;
-                // Move process to end of the list
-                readyQ.splice(readyQ.end(), readyQ, readyQ.begin());
-
-            }
-
         }
 
         // Add in any new process
         if (!processes.empty()) {
-            if (processes[0].arrival_time == timer) {
-                readyQ.push_back(processes[0]);
+            if (processes.front().arrival_time <= timer) {
+                readyQ.push_back(processes.front());
                 processes.erase(processes.begin());
             }
         }
@@ -168,143 +166,136 @@ void rrSimulation(vector<Process> processes) {
         return a.process_id < b.process_id;
     });
 
-    // For testing - delete after
-    for (Process process : readyQ) {
-        cout << "ID: " << process.process_id << "\t| Waiting: " << process.waiting_time << "\t|Turnaround: " << process.turnaround_time<< endl;
-    }
-
-
-    // Output CSV file with waiting time and turnaround time
-    outfile.open("RR-output.csv");
-
-    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
-
-    for (Process process : readyQ) {
-        outfile << process.process_id << "," 
-                << process.original_bt << "," 
-                << process.arrival_time << "," 
-                << process.waiting_time << "," 
-                << process.turnaround_time 
-                << endl;
-    }
-
-    outfile.close();
+    // Output to file
+    outputCSV(readyQ, "RR-output.csv" );
 
 }
 
-void fcfsSimulation(vector<Process> processes) {
 
-    std::ofstream outfile;
+void fcfsSimulation(list<Process> processes) {
 
-    vector<int> running_time;
-    
-    // Initial running time when starting first process is 0
-    running_time.push_back(0);
-    // Waiting time of first process is 0
-    processes[0].waiting_time = 0;
+    list<Process> readyQueue;
+    list<Process> finishedProcess;
 
-
-    // Calculating waiting time
-    for(unsigned int i = 1; i < processes.size(); ++i) {
-
-        // Calculate the current running time by adding burst time of previous process
-        running_time.push_back(running_time[i-1] + processes[i-1].burst_time);
-
-        // Calculate waiting time for current process
-        processes[i].waiting_time = running_time[i] - processes[i].arrival_time;
-
-        /**
-         * If the waiting time for a process is in the negative that means it is already 
-         * in the ready queue before CPU becomes idle so its waiting time is 0
-         * Source: https://www.geeksforgeeks.org/program-for-fcfs-cpu-scheduling-set-1/
-         */
-        if (processes[i].waiting_time < 0) {
-            processes[i].waiting_time = 0;
-        }
-
-    }
-
-    // Calculating turnaround time
-    for(unsigned int i = 0; i < processes.size(); ++i) {
-        processes[i].turnaround_time = processes[i].burst_time + processes[i].waiting_time;
-    }
-
-    // Output CSV file with waiting time and turnaround time
-    outfile.open("FCFS-output.csv");
-
-    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
-
-    for (unsigned int i = 0; i < processes.size(); ++i) {
-        outfile << processes[i].process_id << "," 
-                << processes[i].burst_time << "," 
-                << processes[i].arrival_time << "," 
-                << processes[i].waiting_time << "," 
-                << processes[i].turnaround_time 
-                << endl;
-    }
-
-    outfile.close();
-
-}
-
-void sjfSimulation(vector<Process> processes) {
-
-    std::ofstream outfile;
-
-    vector<Process> runningProcess;
-    vector<Process> queueProcess;
-    int currentRunningTime = 0;
     int timer = 0;
+    int burstTimer = 0;
 
-    // Timer loop
-    while (!processes.empty() || !queueProcess.empty()) {
+    while (!readyQueue.empty() || !processes.empty()) {
 
         // Check for process arrival time - assumes arrival times are listed in order in the file
-        if (timer == processes[0].arrival_time) {
-            queueProcess.push_back(processes[0]);
-            processes.erase(processes.begin());
+        if (!processes.empty()) {
+            if (processes.front().arrival_time <= timer) {
+                readyQueue.push_back(processes.front());
+                processes.erase(processes.begin());
+            }
         }
 
-        // Tracks when process is finished
-        // Moves process from queueProcess to runningProcess
-        if (timer == currentRunningTime) {
-            runningProcess.push_back(queueProcess[0]);
-            queueProcess.erase(queueProcess.begin());
-            // Calculate the waiting time
-            runningProcess.back().waiting_time = currentRunningTime - runningProcess.back().arrival_time;
-            currentRunningTime += runningProcess.back().burst_time;
+        if (!readyQueue.empty()) {
+            // Check if current running process has finished burst time
+            if (burstTimer == readyQueue.front().burst_time) {
+                // Calculate turnaround time
+                readyQueue.front().turnaround_time = timer - readyQueue.front().arrival_time;
+                // Calculate waiting time
+                readyQueue.front().waiting_time = readyQueue.front().turnaround_time - readyQueue.front().original_bt;
+                // Add to finished processes, remove from ready queue
+                finishedProcess.push_back(readyQueue.front());
+                readyQueue.erase(readyQueue.begin());
+                // Reset burst timer
+                burstTimer = 0;
+            }
+
+            // Increment burst timer
+            if (!readyQueue.empty()) {
+                ++burstTimer;
+            }
 
         }
 
-
-        // Lambda for sorting
-        std::stable_sort(queueProcess.begin(), queueProcess.end(), [](Process a, Process b) {
-            return a.burst_time < b.burst_time;
-        });
-
-        // Increment timer tick
+        // Increment timer
         ++timer;
 
     }
 
+    // Output to file
+    outputCSV(finishedProcess, "FCFS-output.csv");
+    
+}
 
-    // Calculate turnaround time
-    for(unsigned int i = 0; i < runningProcess.size(); ++i) {
-        runningProcess[i].turnaround_time = runningProcess[i].burst_time + runningProcess[i].waiting_time;
+
+void sjfSimulation(list<Process> processes) {
+
+    list<Process> readyQueue;
+    list<Process> finishedProcess;
+
+    int burstTimer = 0;
+    int timer = 0;
+
+    // SJF loop
+    while (!processes.empty() || !readyQueue.empty()) {
+
+        // Check for process arrival time - assumes arrival times are listed in order in the file
+        if (!processes.empty()) {
+            if (processes.front().arrival_time <= timer) {
+                readyQueue.push_back(processes.front());
+                processes.erase(processes.begin());
+            }
+        }
+
+        if (!readyQueue.empty()) {
+            if (burstTimer == readyQueue.front().burst_time) {
+                // Calculate turnaround time
+                readyQueue.front().turnaround_time = timer - readyQueue.front().arrival_time;
+                // Calculate waiting time
+                readyQueue.front().waiting_time = readyQueue.front().turnaround_time - readyQueue.front().original_bt;
+                // Add to finished processes, remove from ready queue
+                finishedProcess.push_back(readyQueue.front());
+                readyQueue.erase(readyQueue.begin());
+                // Reset burst timer
+                burstTimer = 0;
+
+                // Sort processes to find shortest job
+                readyQueue.sort([](Process a, Process b) {
+                    return a.burst_time < b.burst_time;
+                });
+
+            }
+            
+            // Increment burst timer
+            if (!readyQueue.empty()) {
+            }
+
+                ++burstTimer;
+        }
+
+        ++timer;
+
     }
 
+    finishedProcess.sort([](Process a, Process b) {
+        return a.process_id < b.process_id;
+    });
 
-    // Output CSV file with waiting time and turnaround time
-    outfile.open("SJF-output.csv");
+    // Output to file
+    outputCSV(finishedProcess, "SJF-output.csv");
+
+}
+
+
+void outputCSV(list<Process> processes, string filename) {
+
+    std::ofstream outfile;
+
+    // Output CSV file to filename
+    outfile.open(filename);
 
     outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
 
-    for (unsigned int i = 0; i < runningProcess.size(); ++i) {
-        outfile << runningProcess[i].process_id << "," 
-                << runningProcess[i].burst_time << "," 
-                << runningProcess[i].arrival_time << "," 
-                << runningProcess[i].waiting_time << "," 
-                << runningProcess[i].turnaround_time 
+    for (Process process : processes) {
+        outfile << process.process_id << "," 
+                << process.burst_time << "," 
+                << process.arrival_time << "," 
+                << process.waiting_time << "," 
+                << process.turnaround_time 
                 << endl;
     }
 
