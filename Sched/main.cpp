@@ -288,11 +288,11 @@ void outputCSV(list<Process> processes, string filename) {
     // Output CSV file to filename
     outfile.open(filename);
 
-    outfile << "Process_id," << "Burst_time," << "Arrival_time" << "Waiting_time," << "Turnaround_time" << endl;
+    outfile << "Process_id," << "Burst_time," << "Arrival_time," << "Waiting_time," << "Turnaround_time" << endl;
 
     for (Process process : processes) {
         outfile << process.process_id << "," 
-                << process.burst_time << "," 
+                << process.original_bt << "," 
                 << process.arrival_time << "," 
                 << process.waiting_time << "," 
                 << process.turnaround_time 
