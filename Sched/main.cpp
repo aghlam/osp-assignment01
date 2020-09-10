@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     if (argc != 3) {
         cout << "Error - requires two arguments to run." << endl;
         cout << "Run program with the input: ./main <scheduler> <filename>" << endl;
-        cout << "<scheduler> selection: -fcfs | -sjf | -rr" << endl;
+        cout << "<scheduler> selection: -fcfs | -sjf | -rr | -all" << endl;
         cout << "<filename>: Name of file including extension" << endl;
         return EXIT_FAILURE;
     } 
@@ -88,9 +88,16 @@ int main(int argc, char** argv) {
         cout << "Outputting data to RR-output.csv" << endl;
         rrSimulation(processes);
 
+    } else if (argv[1] == string("-all")) {
+        cout << "Running all Scheduler simulations" << endl;
+        cout << "Outputting relevant data to FCFS-output.csv, SJF-output.csv and RR-output.csv" << endl;
+        rrSimulation(processes);
+        sjfSimulation(processes);
+        fcfsSimulation(processes);
+
     } else {
         cout << "Error - incorrect scheduling input" << endl;
-        cout << "Please use -fcfs, -sjf or -rr" << endl;
+        cout << "Please use -fcfs, -sjf, -rr or -all" << endl;
         return EXIT_FAILURE;
 
     }
