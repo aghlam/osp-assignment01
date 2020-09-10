@@ -1,9 +1,7 @@
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <list>
-
 
 using std::cout;
 using std::endl;
@@ -38,6 +36,9 @@ int main(int argc, char** argv) {
     // Check for correct number of arguments
     if (argc != 3) {
         cout << "Error - requires two arguments to run." << endl;
+        cout << "Run program with the input: ./main <scheduler> <filename>" << endl;
+        cout << "<scheduler> selection: -fcfs | -sjf | -rr" << endl;
+        cout << "<filename>: Name of file including extension" << endl;
         return EXIT_FAILURE;
     } 
 
@@ -87,14 +88,14 @@ int main(int argc, char** argv) {
         rrSimulation(processes);
 
     } else {
-        cout << "Error - incorrect scheduling input - please try again" << endl;
+        cout << "Error - incorrect scheduling input" << endl;
+        cout << "Please use -fcfs, -sjf or -rr" << endl;
         return EXIT_FAILURE;
 
     }
 
     return EXIT_SUCCESS;
 }
-
 
 void rrSimulation(list<Process> processes) {
 
@@ -171,7 +172,6 @@ void rrSimulation(list<Process> processes) {
 
 }
 
-
 void fcfsSimulation(list<Process> processes) {
 
     list<Process> readyQueue;
@@ -220,7 +220,6 @@ void fcfsSimulation(list<Process> processes) {
     outputCSV(finishedProcess, "FCFS-output.csv");
     
 }
-
 
 void sjfSimulation(list<Process> processes) {
 
@@ -279,7 +278,6 @@ void sjfSimulation(list<Process> processes) {
     outputCSV(finishedProcess, "SJF-output.csv");
 
 }
-
 
 void outputCSV(list<Process> processes, string filename) {
 
