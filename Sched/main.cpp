@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
 
     } else if (argv[1] == string("-all")) {
         cout << "Running all Scheduler simulations" << endl;
-        cout << "Outputting relevant data to FCFS-output.csv, SJF-output.csv and RR-output.csv" << endl;
+        cout << "Outputting data to FCFS-output.csv, SJF-output.csv and RR-output.csv" << endl;
         rrSimulation(processes);
         sjfSimulation(processes);
         fcfsSimulation(processes);
