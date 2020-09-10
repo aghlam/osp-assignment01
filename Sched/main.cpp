@@ -9,6 +9,9 @@ using std::string;
 using std::list;
 
 
+/**
+ * Data type to hold relevant process information
+*/
 struct Process {
 
     int process_id;
@@ -21,9 +24,29 @@ struct Process {
 };
 
 
+/**
+ * Simulates a 'First Come First Served' scheduler and outputs data into a csv file
+ * @param processes list containing processes read from input file 
+ */
 void fcfsSimulation(list<Process> processes);
+
+/**
+ * Simulates a 'Shortest Job First' scheduler and outputs data into a csv file
+ * @param processes list containing processes read from input file 
+ */
 void sjfSimulation(list<Process> processes);
+
+/**
+ * Simulates a 'Round Robin' scheduler and outputs data into a csv file
+ * @param processes list containing processes read from input file 
+ */
 void rrSimulation(list<Process> processes);
+
+/**
+ * Creates/overwrites the csv file the data is output to
+ * @param processes the list of processes to be output
+ * @param filename name of the csv file to be created
+ */
 void outputCSV(list<Process> processes, string filename);
 
 
