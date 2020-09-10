@@ -84,6 +84,7 @@ int main(int argc, char** argv) {
 
     } else if (argv[1] == string("-rr")) {
         cout << "Running Round Robin Scheduler simulation" << endl;
+        cout << "Quantum set to 2. Context switch set to 0.1" << endl;
         cout << "Outputting data to RR-output.csv" << endl;
         rrSimulation(processes);
 
